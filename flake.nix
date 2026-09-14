@@ -42,6 +42,8 @@
             xz
           ];
 
+          runtimeDependencies = with pkgs; [ libayatana-appindicator ];
+
           unpackPhase = ''
             bsdtar --extract --to-stdout --file "$src" data.tar.gz \
               | bsdtar --extract --file - --no-same-owner
