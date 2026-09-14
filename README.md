@@ -1,0 +1,2 @@
+cc-switch nix flake版
+官方nixpkgs更新太慢，appimage版又有输入错误，该版是从deb重打包的
