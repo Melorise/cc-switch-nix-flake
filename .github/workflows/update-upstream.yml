@@ -1,0 +1,76 @@
+name: Update upstream version
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-upstream
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Update version in flake.nix
+        id: update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_tag="$(curl --fail --silent --show-error --location \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/farion1231/cc-switch/releases/latest \
+            | jq --exit-status --raw-output '.tag_name')"
+          latest_version="${latest_tag#v}"
+
+          if [[ ! "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unsupported upstream release tag: $latest_tag" >&2
+            exit 1
+          fi
+
+          current_version="$(sed -nE \
+            's/^[[:space:]]*version = "([^"]+)";/\1/p' \
+            flake.nix | head -n 1)"
+          if [[ -z "$current_version" ]]; then
+            echo "Could not find the package version in flake.nix" >&2
+            exit 1
+          fi
+
+          newest_version="$(printf '%s\n' "$current_version" "$latest_version" | sort -V | tail -n 1)"
+          if [[ "$current_version" == "$latest_version" || "$newest_version" != "$latest_version" ]]; then
+            echo "No newer release available; current version is $current_version"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          current_pattern="${current_version//./\\.}"
+          sed -i -E "s/${current_pattern}/${latest_version}/g" flake.nix
+
+          echo "Updated CC Switch from $current_version to $latest_version"
+          echo "updated=true" >> "$GITHUB_OUTPUT"
+          echo "version=$latest_version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push version update
+        if: steps.update.outputs.updated == 'true'
+        env:
+          VERSION: ${{ steps.update.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flake.nix
+          git commit -m "chore: update cc-switch to $VERSION"
+          git push
