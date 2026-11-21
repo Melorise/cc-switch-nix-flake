@@ -1,11 +1,11 @@
 {
-  description = "CC Switch 4.0.36 repackaged from the upstream x86_64 Debian release";
+  description = "CC Switch 4.0.37 repackaged from the upstream x86_64 Debian release";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     cc-switch-x86_64 = {
-      url = "file+https://github.com/farion1231/cc-switch/releases/download/v4.0.36/CC-Switch-v4.0.36-Linux-x86_64.deb";
+      url = "file+https://github.com/farion1231/cc-switch/releases/download/v4.0.37/CC-Switch-v4.0.37-Linux-x86_64.deb";
       flake = false;
     };
   };
@@ -23,7 +23,7 @@
       packages.x86_64-linux = {
         cc-switch = pkgs.stdenv.mkDerivation {
           pname = "cc-switch";
-          version = "4.0.36";
+          version = "4.0.37";
           src = cc-switch-x86_64;
 
           nativeBuildInputs = with pkgs; [
